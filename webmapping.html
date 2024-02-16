@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webmapping Kanto</title>
+    <!-- Inclure la bibliothèque Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- Inclure la bibliothèque Leaflet-Swipe -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-swipe/dist/leaflet-swipe.css" />
+    <script src="https://unpkg.com/leaflet-swipe/dist/leaflet-swipe.js"></script>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            background-color: #000000; /* Couleur de fond gris */
+        }
+        
+        #map-wrapper {
+            height: 100%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between; /* Distribue les éléments sur la ligne */
+            align-items: stretch; /* Centrer verticalement les éléments */
+            background-color: #312f2f; /* Couleur de fond gris */
+
+        }
+        #map-container {
+            width: 65%; /* Ajustement de la largeur de la carte */
+            margin-right: 2%; /* Marge de 5% à droite de la carte */
+            position: relative;
+        }
+        #map {
+            height: 90%;
+            width: 100%;
+            border: 4px solid rgba(0, 0, 0, 0.5); /* Bordure noire avec 50% de transparence */
+            border-radius: 5px;
+            box-sizing: border-box; /* Inclure la bordure dans la taille totale */
+        }
+        #map-border {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            pointer-events: none; /* Permet aux événements de souris de passer à travers */
+        }
+
+        #title {
+            text-align: center;
+            padding: 20px;
+            font-size: 24px;
+            color: #ffffff;
+            font-weight: bold;
+            font-family: Calibri; /* Utiliser la police Calibri */
+            margin-top: 0;
+            border: 1px solid rgba(255, 255, 255, 0.522); /* Bordure noire avec 50% de transparence */
+            background-color: #f9eeee1c; /* Couleur de fond gris */
+
+        }
+
+        #blabla {
+            width: 30%;
+            height: 80%;
+            background-color: #e4e9df ;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            margin: 20px;
+            font-family: Arial, sans-serif;
+            color: #072a00;
+            text-align: justify; /* Justifier le texte */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #blabla img {
+
+            max-width: 80%;
+        }
+
+
+        #legend-container {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.8); /* Fond de la légende avec 80% d'opacité */
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            z-index: 1000;
+            font-family: Calibri, sans-serif; /* Utiliser la police Calibri */
+            margin-right: 2%; /* Marge de 5% à droite de la carte */
+
+        }
+        .legend-item {
+            margin-bottom: 10px;
+        }
+        .legend-image {
+            max-width: 100%;
+            height: auto;
+        }
+        .opacity-slider {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+
+
+<div id="title">LES ESSENCES FORESTIERES DE L'AGGLOMERATION TOULOUSAINE</div>
+
+<div id="map-wrapper">
+    <div id="blabla">
+        <strong>La 'Télédétection', une méthode permettant de mieux caractériser nos forêts !</strong>
+        <p>
+            Les données forestières de l'IGN (BDForêt_V2.0) ainsi que les séries temporelles d'images Sentinel 2 s'assemblent pour vous permettre de visualiser les essences forestières caractérisant notre région toulousaine ! 
+
+Retrouvez aussi le NDVI (Normalized Difference Vegetation Index), un indice de végétation calculé à partir des images satellites, pour évaluer la densité et la santé de la végétation au fil du temps ! 
+        </p>
+        <img src="matrice_confusion_lvl2.PNG" alt="Matrice de confusion">
+        <p>Figure 1 : Matrice de confusion de la classification des essences forestières (niv.2)</p>
+    </div>
+    <div id="map-container">
+        <div id="map"></div>
+        <div id="map-border"></div>
+    </div>
+    <div id="legend-container"></div>
+</div>
+
+<script>
+    var map = L.map('map').setView([43.6007, 1.4329], 12);
+
+    var baseLayers = {
+        "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors | Sentinel 2 | BDFORET'
+        }),
+        "RVB 19 juillet 2021": L.tileLayer.wms('https://www.geotests.net/geoserver/kanto.andria/wms', {
+            layers: 'kanto.andria:RVB_19juillet',
+            format: 'image/png',
+            transparent: true,
+            attribution: 'THEIA : Sentinel 2 | Kanto Andrianarivony'
+        }),
+        "RVB 31 décembre 2021": L.tileLayer.wms('https://www.geotests.net/geoserver/kanto.andria/wms', {
+            layers: 'kanto.andria:RVB_31dec',
+            format: 'image/png',
+            transparent: true,
+            attribution: 'THEIA : Sentinel 2 | Kanto Andrianarivony'
+        })
+    };
+
+    var wmsLayer1 = L.tileLayer.wms('https://www.geotests.net/geoserver/kanto.andria/wms', {
+        layers: 'kanto.andria:NDVI_31dec_v2',
+        format: 'image/png',
+        transparent: true,
+        attribution: 'THEIA : Sentinel 2 | Groupe 1 Télédec'
+    });
+
+    var wmsLayer2 = L.tileLayer.wms('https://www.geotests.net/geoserver/kanto.andria/wms', {
+        layers: 'kanto.andria:NDVI_19juillet',
+        format: 'image/png',
+        transparent: true,
+        attribution: 'THEIA : Sentinel 2 | Groupe 1 Télédec'
+    });
+
+    var wmsLayer3 = L.tileLayer.wms('https://www.geotests.net/geoserver/kanto.andria/wms', {
+        layers: 'kanto.andria:classif_lvl2',
+        format: 'image/png',
+        transparent: true,
+        attribution: 'THEIA : Sentinel 2 | BD Forêt v2 | Groupe 1 Télédec'
+    });
+
+    var overlayLayers = {
+        "NDVI 31 décembre": wmsLayer1,
+        "NDVI 19 juillet": wmsLayer2,
+        "Essences forestière": wmsLayer3
+    };
+
+    L.control.layers(baseLayers, overlayLayers, { collapsed: false }).addTo(map);
+
+    baseLayers.OpenStreetMap.addTo(map);
+
+    map.on('overlayadd', function (eventLayer) {
+        if (eventLayer.name === 'NDVI 31 décembre' || eventLayer.name === 'NDVI 19 juillet' || eventLayer.name === 'Essences forestière') {
+            // Afficher la légende correspondante
+            showLegend(eventLayer.name);
+            // Afficher le contrôle de l'opacité
+            showOpacitySlider(eventLayer.layer);
+        } else {
+            // Masquer la légende si un autre layer est ajouté
+            hideLegend();
+            // Masquer le contrôle de l'opacité
+            hideOpacitySlider();
+        }
+    });
+
+    function showLegend(layerName) {
+        var legendUrl = ''; // URL de la légende pour le layer spécifié
+        if (layerName === 'NDVI 31 décembre') {
+            legendUrl = 'https://www.geotests.net/geoserver/kanto.andria/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&LAYER=kanto.andria:NDVI_31dec_v2';
+        } else if (layerName === 'NDVI 19 juillet') {
+            legendUrl = 'https://www.geotests.net/geoserver/kanto.andria/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&LAYER=kanto.andria:NDVI_19juillet';
+        } else if (layerName === 'Essences forestière') {
+            legendUrl = 'https://www.geotests.net/geoserver/kanto.andria/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&LAYER=kanto.andria:classif_lvl2';
+        }
+
+        // Afficher la légende dans une div
+        var legendContainer = document.getElementById('legend-container');
+        legendContainer.innerHTML = `
+            <div class="legend-item">
+                <strong>${layerName}</strong>
+                <br>
+                <img class="legend-image" src="${legendUrl}" alt="Légende ${layerName}">
+                <input type="range" class="opacity-slider" min="0" max="1" step="0.1" value="1" />
+            </div>
+        `;
+    }
+
+    function hideLegend() {
+        // Masquer la légende
+        var legendContainer = document.getElementById('legend-container');
+        legendContainer.innerHTML = '';
+    }
+
+    function showOpacitySlider(layer) {
+        // Afficher le contrôle de l'opacité
+        var opacitySlider = document.querySelector('.opacity-slider');
+        opacitySlider.style.display = 'block';
+        // Mettre à jour l'opacité lorsque le curseur est déplacé
+        opacitySlider.oninput = function () {
+            layer.setOpacity(this.value);
+        };
+    }
+
+    function hideOpacitySlider() {
+        // Masquer le contrôle de l'opacité
+        var opacitySlider = document.querySelector('.opacity-slider');
+        opacitySlider.style.display = 'none';
+    }
+
+    L.control.scale({ metric: true }).addTo(map);
+
+</script>
+
+</body>
+</html>
