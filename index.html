@@ -106,6 +106,31 @@
         .opacity-slider {
             width: 100%;
         }
+
+        /* Pour les écrans de petite taille */
+        @media screen and (max-width: 768px) {
+            #map-wrapper {
+                flex-direction: column;
+                align-items: center;
+            }
+        
+            #blabla {
+                width: 90%;
+                margin: 20px 0;
+            }
+        
+            #map-container {
+                width: 90%;
+            }
+        
+            #blabla {
+                order: 2; /* Déplace la div blabla en dessous de la carte */
+            }
+        
+            #map-container {
+                order: 1; /* Maintient la carte en haut */
+            }
+        }
     </style>
 </head>
 <body>
